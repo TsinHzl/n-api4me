@@ -76,6 +76,9 @@ async function renderFilter(
         },
       }
     }
+    if (url === '/api/user/models') {
+      return { data: { success: true, data: ['gpt-4o'] } }
+    }
     return { data: { success: true, data: { quota: 0, rpm: 0, tpm: 0 } } }
   })
   const root = createRootRoute()

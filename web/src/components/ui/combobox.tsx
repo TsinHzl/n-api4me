@@ -237,12 +237,15 @@ function ComboboxInput({
   showTrigger = true,
   showClear = false,
   triggerAriaLabel,
+  clearAriaLabel,
   ...props
 }: ComboboxPrimitive.Input.Props & {
   showTrigger?: boolean
   showClear?: boolean
   triggerAriaLabel?: string
+  clearAriaLabel?: string
 }) {
+  const { t } = useTranslation()
   return (
     <InputGroup className={cn('w-auto', className)}>
       <ComboboxPrimitive.Input
@@ -260,7 +263,12 @@ function ComboboxInput({
             disabled={disabled}
           />
         )}
-        {showClear && <ComboboxClear disabled={disabled} />}
+        {showClear && (
+          <ComboboxClear
+            aria-label={clearAriaLabel ?? t('Clear')}
+            disabled={disabled}
+          />
+        )}
       </InputGroupAddon>
       {children}
     </InputGroup>
@@ -488,5 +496,6 @@ export {
   ComboboxChipsInput,
   ComboboxTrigger,
   ComboboxValue,
+  ComboboxClear,
   useComboboxAnchor,
 }

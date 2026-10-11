@@ -39,15 +39,18 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { getGroups } from '@/features/users/api'
-import { useMediaQuery } from '@/hooks'
-import { getUserGroups } from '@/lib/api'
+import { getEnabledModels, searchChannels } from '@/features/channels/api'
+import { getGroups, searchUsers } from '@/features/users/api'
+import { useDebounce, useMediaQuery } from '@/hooks'
+import { getUserGroups, getUserModels } from '@/lib/api'
 import { requireServerSuccess } from '@/lib/server-error-message'
+import { cn } from '@/lib/utils'
 
 import { LOG_TYPE_ALL_VALUE, LOG_TYPE_FILTERS } from '../constants'
 import { buildSearchParams } from '../lib/filter'
 import { getDefaultTimeRange } from '../lib/utils'
 import type { CommonLogFilters } from '../types'
+import { AsyncCombobox } from './async-combobox'
 import { CommonLogsStats } from './common-logs-stats'
 import { CompactDateTimeRangePicker } from './compact-date-time-range-picker'
 import {
@@ -58,6 +61,13 @@ import {
 import { useLogsViewScope, useUsageLogsContext } from './usage-logs-provider'
 
 const route = getRouteApi('/_authenticated/usage-logs/$section')
+
+// `/api/channel/search` 的 page_size 默认为 20，筛选需要完整渠道列表。
+const CHANNEL_LIST_PAGE_SIZE = 1000
+// `/api/user/search` 的 page_size 有 100 硬上限（common/page_info.go）。
+const USER_LIST_PAGE_SIZE = 100
+// 用户名搜索防抖间隔（毫秒）。
+const USERNAME_SEARCH_DEBOUNCE_MS = 300
 
 type LogTypeValue = (typeof LOG_TYPE_FILTERS)[number]['value']
 const logTypeValueSet = new Set<string>(
@@ -144,6 +154,70 @@ export function CommonLogsFilterBar<TData>(
       .filter((group) => group !== 'auto')
       .map((group) => ({ label: group, value: group }))
   }, [isAdmin, adminGroups, userGroups])
+
+  const { data: modelList } = useQuery({
+    queryKey: ['usage-logs-filter-models', isAdmin],
+    queryFn: async () => {
+      const response = requireServerSuccess(
+        isAdmin ? await getEnabledModels() : await getUserModels()
+      )
+      // 既有测试以非数组信封兜底 mock，此处不信任载荷形态。
+      return Array.isArray(response.data) ? response.data : []
+    },
+  })
+  const { data: channelList } = useQuery({
+    queryKey: ['usage-logs-filter-channels'],
+    enabled: isAdmin,
+    queryFn: async () => {
+      const response = requireServerSuccess(
+        await searchChannels({ p: 1, page_size: CHANNEL_LIST_PAGE_SIZE })
+      )
+      const items = response.data?.items
+      return Array.isArray(items) ? items : []
+    },
+  })
+  const [usernameKeyword, setUsernameKeyword] = useState('')
+  const debouncedUsernameKeyword = useDebounce(
+    usernameKeyword,
+    USERNAME_SEARCH_DEBOUNCE_MS
+  )
+  const { data: userList, isFetching: userListFetching } = useQuery({
+    queryKey: ['usage-logs-filter-users', debouncedUsernameKeyword],
+    // 空关键词会拉回前 100 名用户且对筛选无意义，故仅在输入关键词后查询。
+    enabled: isAdmin && debouncedUsernameKeyword.trim().length > 0,
+    queryFn: async () => {
+      const response = requireServerSuccess(
+        await searchUsers({
+          keyword: debouncedUsernameKeyword,
+          p: 1,
+          page_size: USER_LIST_PAGE_SIZE,
+        })
+      )
+      const items = response.data?.items
+      return Array.isArray(items) ? items : []
+    },
+  })
+  const modelOptions = useMemo(
+    () => (modelList ?? []).map((model) => ({ value: model, label: model })),
+    [modelList]
+  )
+  const channelOptions = useMemo(
+    () =>
+      (channelList ?? []).map((channel) => ({
+        value: String(channel.id),
+        // 接口只做类型断言不做运行时校验，name 缺失时只显示 #ID。
+        label: `#${channel.id} ${channel.name ?? ''}`.trim(),
+      })),
+    [channelList]
+  )
+  const usernameOptions = useMemo(
+    () =>
+      (userList ?? []).map((user) => ({
+        value: user.username,
+        label: user.username,
+      })),
+    [userList]
+  )
 
   const searchState = useMemo<CommonLogDraft>(() => {
     const { start, end } = getDefaultTimeRange()
@@ -335,10 +409,15 @@ export function CommonLogsFilterBar<TData>(
   )
   const modelFilter = (
     <LogsFilterField>
-      <LogsFilterInput
-        placeholder={t('Model Name')}
+      <AsyncCombobox
+        options={modelOptions}
         value={filters.model || ''}
-        onChange={(e) => handleChange('model', e.target.value)}
+        onValueChange={(value) => handleChange('model', value)}
+        ariaLabel={t('Model Name')}
+        placeholder={t('Model Name')}
+        emptyText={t('No model found.')}
+        className={cn('h-8 min-w-0 text-sm leading-5', sensitiveInputClass)}
+        popupClassName={sensitiveInputClass}
         onKeyDown={handleKeyDown}
       />
     </LogsFilterField>
@@ -445,21 +524,32 @@ export function CommonLogsFilterBar<TData>(
       </LogsFilterField>
       {isAdmin && (
         <LogsFilterField>
-          <LogsFilterInput
-            placeholder={t('Username')}
-            className={sensitiveInputClass}
+          <AsyncCombobox
+            options={usernameOptions}
             value={filters.username || ''}
-            onChange={(e) => handleChange('username', e.target.value)}
+            onValueChange={(value) => handleChange('username', value)}
+            onSearch={setUsernameKeyword}
+            loading={userListFetching}
+            ariaLabel={t('Username')}
+            placeholder={t('Username')}
+            emptyText={t('No user found.')}
+            className={cn('h-8 min-w-0 text-sm leading-5', sensitiveInputClass)}
+            popupClassName={sensitiveInputClass}
             onKeyDown={handleKeyDown}
           />
         </LogsFilterField>
       )}
       {isAdmin && (
         <LogsFilterField>
-          <LogsFilterInput
-            placeholder={t('Channel ID')}
+          <AsyncCombobox
+            options={channelOptions}
             value={filters.channel || ''}
-            onChange={(e) => handleChange('channel', e.target.value)}
+            onValueChange={(value) => handleChange('channel', value)}
+            ariaLabel={t('Channel ID')}
+            placeholder={t('Channel ID')}
+            emptyText={t('No channel found.')}
+            className={cn('h-8 min-w-0 text-sm leading-5', sensitiveInputClass)}
+            popupClassName={sensitiveInputClass}
             onKeyDown={handleKeyDown}
           />
         </LogsFilterField>

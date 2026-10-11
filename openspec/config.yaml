@@ -1,0 +1,27 @@
+schema: spec-driven
+
+# 项目上下文（AI 生成 artifact 时注入的约束，不复制进 artifact 正文）
+context: |
+  new-api 是一个 Go + React 的 AI API 网关，聚合 40+ 上游 AI 提供商。
+  后端：Go 1.26、Gin、GORM v2，主库须同时兼容 SQLite / MySQL >= 5.7.8 / PostgreSQL >= 9.6。
+  前端：React 19、TypeScript、TanStack Router/Query/Table、Base UI、Tailwind CSS 4，包管理器为 Bun。
+  前端代码位于 web/，遵循 web/AGENTS.md 与仓库根 AGENTS.md。
+  前端文案必须支持 i18n，语言文件为 web/src/i18n/locales/ 下 7 个扁平 JSON（en、zh、zh-TW、fr、ru、ja、vi），键为英文源串。
+  前端 UI 必须优先复用 web/src/components/ 与相关 feature 下的既有组件，新增替代实现须说明能力缺口。
+  受保护信息：项目名称与 QuantumNous 相关署名、品牌、元数据不得修改或移除。
+
+rules:
+  proposal:
+    - 明确列出 In Scope 与 Out of Scope
+    - 变更涉及前端时，须列出复用的既有组件路径及新增组件的能力缺口说明
+    - 变更涉及 i18n 时，须说明需要新增的翻译键及需同步的语言文件数量
+  specs:
+    - Requirement 标题使用 `### Requirement: <名称>`，Scenario 标题使用 `#### Scenario: <名称>`
+    - 每条 Requirement 至少包含一个 Scenario，使用 WHEN/THEN 描述可验证行为
+    - 只描述用户或下游系统可观察的行为，不写内部类名、函数名与实施细节
+  tasks:
+    - 每个任务独立可验证，预计工时不超过 2 小时
+    - 涉及前端改动的任务须注明验证方式（typecheck / lint / test / 构建）
+  design:
+    - 存在多个可行技术方案时须记录取舍理由
+    - 涉及公共组件扩展时须说明影响面与回归范围

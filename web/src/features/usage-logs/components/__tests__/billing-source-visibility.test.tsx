@@ -91,6 +91,8 @@ async function renderLogs(props: {
       data = []
     } else if (url === '/api/user/self/groups') {
       data = {}
+    } else if (url === '/api/user/models') {
+      data = ['gpt-4o']
     }
     return { data: { success: true, data } }
   })

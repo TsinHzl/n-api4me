@@ -54,12 +54,15 @@ function FilterFixture() {
 }
 
 async function renderFilter() {
-  vi.spyOn(api, 'get').mockImplementation(async (url) => ({
-    data: {
-      success: true,
-      data: url === '/api/user/self/groups' ? {} : { quota: 0, rpm: 0, tpm: 0 },
-    },
-  }))
+  vi.spyOn(api, 'get').mockImplementation(async (url) => {
+    let data: unknown = { quota: 0, rpm: 0, tpm: 0 }
+    if (url === '/api/user/self/groups') {
+      data = {}
+    } else if (url === '/api/user/models') {
+      data = ['gemini-3.7-flash']
+    }
+    return { data: { success: true, data } }
+  })
   const root = createRootRoute()
   const auth = createRoute({ getParentRoute: () => root, id: '_authenticated' })
   const logs = createRoute({
