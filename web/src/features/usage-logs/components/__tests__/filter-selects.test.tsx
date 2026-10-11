@@ -254,6 +254,15 @@ it('requests the full channel list instead of the default first page', async () 
   )
 })
 
+it('lists users as soon as the username selector opens', async () => {
+  mockApi({ users: ['alice', 'bob'] })
+  await renderAdminFilter()
+  const input = screen.getByRole('combobox', { name: 'Username' })
+  await userEvent.click(input)
+  expect(await screen.findByRole('option', { name: 'alice' })).toBeVisible()
+  expect(screen.getByRole('option', { name: 'bob' })).toBeVisible()
+})
+
 it('searches usernames on the server after typing and submits the chosen user', async () => {
   mockApi({ users: ['alice', 'alicia'] })
   const router = await renderAdminFilter()

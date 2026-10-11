@@ -183,8 +183,8 @@ export function CommonLogsFilterBar<TData>(
   )
   const { data: userList, isFetching: userListFetching } = useQuery({
     queryKey: ['usage-logs-filter-users', debouncedUsernameKeyword],
-    // 空关键词会拉回前 100 名用户且对筛选无意义，故仅在输入关键词后查询。
-    enabled: isAdmin && debouncedUsernameKeyword.trim().length > 0,
+    // 打开下拉即列出前 100 名用户；输入关键词后按服务端搜索结果替换该列表。
+    enabled: isAdmin,
     queryFn: async () => {
       const response = requireServerSuccess(
         await searchUsers({
