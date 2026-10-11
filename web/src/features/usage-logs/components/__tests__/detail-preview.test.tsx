@@ -23,10 +23,12 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { createInstance } from 'i18next'
 import { I18nextProvider } from 'react-i18next'
 import { afterAll, afterEach, beforeEach, expect, test, vi } from 'vitest'
 
+import { DataTableViewOptions } from '@/components/data-table/toolbar/view-options'
 import en from '@/i18n/locales/en.json'
 import {
   DEFAULT_CURRENCY_CONFIG,
@@ -34,8 +36,11 @@ import {
 } from '@/stores/system-config-store'
 
 import type { UsageLog } from '../../data/schema'
+import { getReasoningEffortVariant } from '../../lib/format'
 import type { LogOtherData } from '../../types'
 import { useCommonLogsColumns } from '../columns/common-logs-columns'
+import { DetailsDialog } from '../dialogs/details-dialog'
+import { UsageLogsProvider, useUsageLogsContext } from '../usage-logs-provider'
 
 vi.mock('@lobehub/icons', () => ({}))
 vi.hoisted(() => {
@@ -47,7 +52,7 @@ vi.hoisted(() => {
 })
 afterAll(() => vi.unstubAllGlobals())
 
-function makeLog(other: LogOtherData, type = 2): UsageLog {
+function makeLog(other: LogOtherData, type = 2, ip = ''): UsageLog {
   return {
     id: 1,
     user_id: 1,
@@ -66,11 +71,31 @@ function makeLog(other: LogOtherData, type = 2): UsageLog {
     channel_name: '',
     token_id: 1,
     group: 'default',
-    ip: '',
+    ip,
     other: JSON.stringify(other),
     request_id: 'req-1',
     upstream_request_id: '',
   }
+}
+
+function LogCell(props: {
+  other: LogOtherData
+  columnId: string
+  isAdmin?: boolean
+  type?: number
+  ip?: string
+}) {
+  const table = useReactTable({
+    data: [makeLog(props.other, props.type, props.ip)],
+    columns: useCommonLogsColumns(props.isAdmin ?? true, false),
+    getCoreRowModel: getCoreRowModel(),
+  })
+  const cell = table
+    .getRowModel()
+    .rows[0].getAllCells()
+    .find((item) => item.column.id === props.columnId)
+  if (!cell) throw new Error(`The log must have a ${props.columnId} column`)
+  return flexRender(cell.column.columnDef.cell, cell.getContext())
 }
 
 function DetailPreview(props: {
@@ -78,17 +103,14 @@ function DetailPreview(props: {
   isAdmin: boolean
   type?: number
 }) {
-  const table = useReactTable({
-    data: [makeLog(props.other, props.type)],
-    columns: useCommonLogsColumns(props.isAdmin, false),
-    getCoreRowModel: getCoreRowModel(),
-  })
-  const cell = table
-    .getRowModel()
-    .rows[0].getAllCells()
-    .find((item) => item.column.id === 'content')
-  if (!cell) throw new Error('The log must have a content column')
-  return flexRender(cell.column.columnDef.cell, cell.getContext())
+  return (
+    <LogCell
+      other={props.other}
+      columnId='content'
+      isAdmin={props.isAdmin}
+      type={props.type}
+    />
+  )
 }
 const plugin = {
   key: 'incho',
@@ -124,18 +146,87 @@ function renderPreview(other: LogOtherData, isAdmin = true, type?: number) {
   render(
     <I18nextProvider i18n={i18n}>
       <QueryClientProvider client={client}>
-        <DetailPreview other={other} isAdmin={isAdmin} type={type} />
+        <UsageLogsProvider>
+          <DetailPreview other={other} isAdmin={isAdmin} type={type} />
+        </UsageLogsProvider>
       </QueryClientProvider>
     </I18nextProvider>
   )
   return screen.getByRole('button', { name: /./ })
 }
 
+function renderLogCell(props: {
+  columnId: string
+  other?: LogOtherData
+  isAdmin?: boolean
+  type?: number
+  ip?: string
+}) {
+  return render(
+    <I18nextProvider i18n={i18n}>
+      <QueryClientProvider client={client}>
+        <UsageLogsProvider>
+          <LogCell
+            other={props.other ?? {}}
+            columnId={props.columnId}
+            isAdmin={props.isAdmin}
+            type={props.type}
+            ip={props.ip}
+          />
+        </UsageLogsProvider>
+      </QueryClientProvider>
+    </I18nextProvider>
+  )
+}
+
+function SensitiveToggle() {
+  const { setSensitiveVisible } = useUsageLogsContext()
+  return (
+    <button type='button' onClick={() => setSensitiveVisible(false)}>
+      Hide sensitive data
+    </button>
+  )
+}
+
+function DialogFixture(props: {
+  type?: number
+  ip?: string
+  sensitiveVisible?: boolean
+}) {
+  return (
+    <I18nextProvider i18n={i18n}>
+      <QueryClientProvider client={client}>
+        <DetailsDialog
+          log={makeLog({ login_method: 'password' }, props.type, props.ip)}
+          isAdmin
+          isRoot={false}
+          open
+          onOpenChange={() => undefined}
+          {...(props.sensitiveVisible === undefined
+            ? {}
+            : { sensitiveVisible: props.sensitiveVisible })}
+        />
+      </QueryClientProvider>
+    </I18nextProvider>
+  )
+}
+
+function ViewOptionsFixture() {
+  const table = useReactTable({
+    data: [makeLog({})],
+    columns: useCommonLogsColumns(true, false),
+    getCoreRowModel: getCoreRowModel(),
+  })
+  return <DataTableViewOptions table={table} />
+}
+
 test('keeps log details open when the parent refreshes with unchanged data', async () => {
   const other = { model_price: 0.25 }
   const wrapper = ({ children }: { children: React.ReactNode }) => (
     <I18nextProvider i18n={i18n}>
-      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+      <QueryClientProvider client={client}>
+        <UsageLogsProvider>{children}</UsageLogsProvider>
+      </QueryClientProvider>
     </I18nextProvider>
   )
   const { rerender } = render(<DetailPreview other={other} isAdmin />, {
@@ -407,3 +498,121 @@ test.each(['missing schema', 'unsupported expression', 'unknown tier'])(
     expect(preview.textContent).toBe('Dynamic Pricing · No matching results')
   }
 )
+
+// The badge colour classes collapse orange/yellow/amber onto text-warning, so
+// the seven effort tiers are only distinguishable at the variant level.
+test.each([
+  ['max', 'orange'],
+  ['xhigh', 'orange'],
+  ['high', 'orange'],
+  ['medium', 'yellow'],
+  ['low', 'green'],
+  ['minimal', 'green'],
+  ['none', 'grey'],
+  ['unsupported', 'grey'],
+])('reasoning effort %s maps to the %s variant', (effort, variant) => {
+  expect(getReasoningEffortVariant(effort)).toBe(variant)
+})
+
+test.each([
+  ['high', 'text-warning'],
+  ['medium', 'text-warning'],
+  ['minimal', 'text-success'],
+  ['none', 'text-muted-foreground'],
+])('reasoning effort %s renders the %s badge', (effort, className) => {
+  const { container } = renderLogCell({
+    other: { reasoning_effort: effort },
+    columnId: 'reasoning_effort',
+  })
+  const badge = container.querySelector('[data-slot="status-badge"]')
+  expect(badge).toHaveTextContent(effort)
+  expect(badge).toHaveClass(className)
+})
+
+test('reasoning effort falls back to a dash when absent', () => {
+  const { container } = renderLogCell({ columnId: 'reasoning_effort' })
+  expect(container).toHaveTextContent('-')
+})
+
+test.each([1, 3, 4, 7])(
+  'type %s logs render neither the reasoning effort nor the ip column',
+  (type) => {
+    const effort = renderLogCell({
+      other: { reasoning_effort: 'high' },
+      columnId: 'reasoning_effort',
+      type,
+    })
+    expect(effort.container).toBeEmptyDOMElement()
+    const ip = renderLogCell({ columnId: 'ip', type, ip: '203.0.113.7' })
+    expect(ip.container).toBeEmptyDOMElement()
+  }
+)
+
+test('the ip column shows the request address in plain text', () => {
+  const { container } = renderLogCell({ columnId: 'ip', ip: '203.0.113.7' })
+  expect(container).toHaveTextContent('203.0.113.7')
+})
+
+test('the ip column falls back to a dash without an address', () => {
+  const { container } = renderLogCell({ columnId: 'ip' })
+  expect(container).toHaveTextContent('-')
+})
+
+test('the ip column masks the address while sensitive data is hidden', async () => {
+  const user = userEvent.setup()
+  const { container } = render(
+    <I18nextProvider i18n={i18n}>
+      <QueryClientProvider client={client}>
+        <UsageLogsProvider>
+          <SensitiveToggle />
+          <LogCell other={{}} columnId='ip' ip='203.0.113.7' />
+        </UsageLogsProvider>
+      </QueryClientProvider>
+    </I18nextProvider>
+  )
+  expect(container).toHaveTextContent('203.0.113.7')
+  await user.click(screen.getByRole('button', { name: 'Hide sensitive data' }))
+  expect(container).toHaveTextContent('••••')
+  expect(container).not.toHaveTextContent('203.0.113.7')
+})
+
+// The dialog portals its content into document.body, so assertions query the
+// screen rather than the render container.
+// Type 7 renders the login audit fields; type 2 renders the admin ip row.
+test.each([7, 2])(
+  'the dialog masks the ip for type %s while sensitive data is hidden',
+  async (type) => {
+    render(<DialogFixture type={type} ip='203.0.113.7' sensitiveVisible={false} />)
+    const dialog = within(await screen.findByRole('dialog'))
+    expect(dialog.getByText('••••')).toBeVisible()
+    expect(dialog.queryByText('203.0.113.7')).not.toBeInTheDocument()
+  }
+)
+
+test.each([7, 2])(
+  'the dialog keeps the ip visible for type %s when the prop is omitted',
+  async (type) => {
+    render(<DialogFixture type={type} ip='203.0.113.7' />)
+    const dialog = within(await screen.findByRole('dialog'))
+    expect(dialog.getByText('203.0.113.7')).toBeVisible()
+  }
+)
+
+test('both new columns are listed in the view options', async () => {
+  const user = userEvent.setup()
+  render(
+    <I18nextProvider i18n={i18n}>
+      <QueryClientProvider client={client}>
+        <UsageLogsProvider>
+          <ViewOptionsFixture />
+        </UsageLogsProvider>
+      </QueryClientProvider>
+    </I18nextProvider>
+  )
+  await user.click(screen.getByRole('button', { name: 'View' }))
+  const labels = (await screen.findAllByRole('menuitemcheckbox')).map(
+    (item) => item.textContent
+  )
+  expect(labels).toContain('Reasoning Effort')
+  expect(labels).toContain('IP Address')
+})

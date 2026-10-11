@@ -58,6 +58,7 @@ import type { UsageLog } from '../../data/schema'
 import {
   formatModelName,
   decodeBillingExprB64,
+  getReasoningEffortVariant,
   getTieredBillingSummary,
   hasAnyCacheTokens,
   parseLogOther,
@@ -691,6 +692,29 @@ export function useCommonLogsColumns(
         meta: { mobileTitle: true },
       },
       {
+        id: 'reasoning_effort',
+        header: t('Reasoning Effort'),
+        accessorFn: (row) => parseLogOther(row.other)?.reasoning_effort,
+        cell: function ReasoningEffortCell({ row }) {
+          const log = row.original
+          if (!isDisplayableLogType(log.type)) return null
+
+          const effort = parseLogOther(log.other)?.reasoning_effort
+          if (!effort) {
+            return <span className='text-muted-foreground text-xs'>-</span>
+          }
+
+          return (
+            <StatusBadge
+              label={effort}
+              variant={getReasoningEffortVariant(effort)}
+              size='sm'
+              copyable={false}
+            />
+          )
+        },
+      },
+      {
         accessorKey: 'is_stream',
         header: t('Stream'),
         cell: ({ row }) => {
@@ -804,11 +828,32 @@ export function useCommonLogsColumns(
       },
 
       {
+        accessorKey: 'ip',
+        header: t('IP Address'),
+        cell: function IpCell({ row }) {
+          const { sensitiveVisible } = useUsageLogsContext()
+          const log = row.original
+          if (!isDisplayableLogType(log.type)) return null
+
+          if (!log.ip) {
+            return <span className='text-muted-foreground text-xs'>-</span>
+          }
+
+          return (
+            <span className='font-mono text-xs'>
+              {sensitiveVisible ? log.ip : '••••'}
+            </span>
+          )
+        },
+      },
+
+      {
         accessorKey: 'content',
         header: t('Details'),
         cell: function DetailsCell({ row }) {
           const { t, i18n } = useTranslation()
           const [dialogOpen, setDialogOpen] = useState(false)
+          const { sensitiveVisible } = useUsageLogsContext()
           const log = row.original
           const other = parseLogOther(log.other)
 
@@ -880,6 +925,7 @@ export function useCommonLogsColumns(
                 log={log}
                 isAdmin={isAdmin}
                 isRoot={isRoot}
+                sensitiveVisible={sensitiveVisible}
                 open={dialogOpen}
                 onOpenChange={setDialogOpen}
               />

@@ -475,6 +475,8 @@ interface DetailsDialogProps {
   isRoot: boolean
   open: boolean
   onOpenChange: (open: boolean) => void
+  // 缺省视为可见，保持既有直接渲染 DetailsDialog 的调用点行为不变。
+  sensitiveVisible?: boolean
 }
 
 export function DetailsDialog(props: DetailsDialogProps) {
@@ -598,7 +600,7 @@ export function DetailsDialog(props: DetailsDialogProps) {
         },
         props.log.ip && {
           label: t('IP Address'),
-          value: props.log.ip,
+          value: props.sensitiveVisible === false ? '••••' : props.log.ip,
         },
         other?.user_agent && {
           label: t('User Agent'),
@@ -716,7 +718,7 @@ export function DetailsDialog(props: DetailsDialogProps) {
               value={
                 <span className='flex items-center gap-1'>
                   <Globe className='size-3 text-amber-500' aria-hidden='true' />
-                  {props.log.ip}
+                  {props.sensitiveVisible === false ? '••••' : props.log.ip}
                 </span>
               }
               mono
