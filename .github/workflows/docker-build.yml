@@ -12,6 +12,10 @@ on:
         required: true
         type: string
 
+concurrency:
+  group: docker-build-${{ github.ref }}
+  cancel-in-progress: false
+
 env:
   IMAGE: ghcr.io/tsinhzl/n-api4me
 
