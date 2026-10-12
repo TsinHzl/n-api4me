@@ -10,6 +10,11 @@ import (
 	"github.com/lionsoul2014/ip2region/binding/golang/xdb"
 )
 
+// ip2regionXdb 是 ip2region 离线数据文件，字段格式为「国家|省|市|ISP|ISO」。
+// 来源 github.com/lionsoul2014/ip2region 的 data/ip2region_v4.xdb，
+// SHA256 f5ccf366678c91394ac5e469f93b624d5df290e7353c748b920c6b84ffc4e551。
+// 更新数据文件后须同步更新此行并重跑 common 包的归属地测试。
+//
 //go:embed geo/ip2region.xdb
 var ip2regionXdb []byte
 
@@ -49,7 +54,9 @@ func GetIPLocation(ipStr string) string {
 		return ""
 	}
 
-	region, err := s.Search(ipv4)
+	// Search 的类型分支只接受 string 与 []byte；net.IP 是 []byte 的命名类型，
+	// 直接传入会落入 default 分支报 invalid ip value type，故转回 string。
+	region, err := s.Search(ipv4.String())
 	if err != nil || region == "" {
 		return ""
 	}
@@ -57,7 +64,7 @@ func GetIPLocation(ipStr string) string {
 	return formatIPRegion(region)
 }
 
-// formatIPRegion 将 ip2region 的「国家|区域|省|市|ISP」格式化为「国家·省市」。
+// formatIPRegion 将 ip2region 的「国家|省|市|ISP|ISO」格式化为「国家·省市」。
 // 仅在归属国家为中国时输出，与现有日志 IP 展示场景对齐。
 func formatIPRegion(region string) string {
 	parts := strings.Split(region, "|")
@@ -66,10 +73,11 @@ func formatIPRegion(region string) string {
 			parts[i] = ""
 		}
 	}
-	if len(parts) < 5 {
+	// 至少需要国家、省、市三个字段才能拼出可读归属地
+	if len(parts) < 3 {
 		return ""
 	}
-	country, province, city := parts[0], parts[2], parts[3]
+	country, province, city := parts[0], parts[1], parts[2]
 	if country != "中国" || province == "" {
 		return ""
 	}
