@@ -115,6 +115,8 @@ export interface ToolSurchargeItem {
 }
 
 export interface LogOtherData {
+  // IP geolocation (e.g. "中国·北京市") resolved server-side when the log was recorded
+  ip_location?: string
   admin_info?: {
     request_policy?: PolicyEvent[]
     is_multi_key?: boolean

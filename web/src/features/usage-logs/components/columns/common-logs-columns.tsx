@@ -839,9 +839,22 @@ export function useCommonLogsColumns(
             return <span className='text-muted-foreground text-xs'>-</span>
           }
 
+          const other = parseLogOther(log.other)
+          const location = other?.ip_location
           return (
             <span className='font-mono text-xs'>
-              {sensitiveVisible ? log.ip : '••••'}
+              {sensitiveVisible ? (
+                <>
+                  {log.ip}
+                  {location ? (
+                    <span className='text-muted-foreground ml-1 font-sans'>
+                      {location}
+                    </span>
+                  ) : null}
+                </>
+              ) : (
+                '••••'
+              )}
             </span>
           )
         },

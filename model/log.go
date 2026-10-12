@@ -281,6 +281,10 @@ func RecordErrorLog(c *gin.Context, userId int, channelId int, modelName string,
 	username := c.GetString("username")
 	requestId := c.GetString(common.RequestIdKey)
 	upstreamRequestId := c.GetString(common.UpstreamRequestIdKey)
+	ip := c.ClientIP()
+	if location := common.GetIPLocation(ip); location != "" {
+		other.SetPublic("ip_location", location)
+	}
 	otherStr := other.JSONString()
 	log := &Log{
 		UserId:            userId,
@@ -298,7 +302,7 @@ func RecordErrorLog(c *gin.Context, userId int, channelId int, modelName string,
 		UseTime:           useTimeSeconds,
 		IsStream:          isStream,
 		Group:             group,
-		Ip:                c.ClientIP(),
+		Ip:                ip,
 		RequestId:         requestId,
 		UpstreamRequestId: upstreamRequestId,
 		Other:             otherStr,
@@ -334,6 +338,10 @@ func RecordConsumeLog(c *gin.Context, userId int, params RecordConsumeLogParams)
 	upstreamRequestId := c.GetString(common.UpstreamRequestIdKey)
 	createdAt := common.GetTimestamp()
 	other := params.Other
+	ip := c.ClientIP()
+	if location := common.GetIPLocation(ip); location != "" {
+		other.SetPublic("ip_location", location)
+	}
 	content := other.setContent(params.Content)
 	otherStr := other.JSONString()
 	log := &Log{
@@ -352,7 +360,7 @@ func RecordConsumeLog(c *gin.Context, userId int, params RecordConsumeLogParams)
 		UseTime:           params.UseTimeSeconds,
 		IsStream:          params.IsStream,
 		Group:             params.Group,
-		Ip:                c.ClientIP(),
+		Ip:                ip,
 		RequestId:         requestId,
 		UpstreamRequestId: upstreamRequestId,
 		Other:             otherStr,
