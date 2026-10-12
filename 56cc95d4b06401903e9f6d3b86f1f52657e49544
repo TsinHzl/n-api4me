@@ -1,0 +1,27 @@
+model/log.go
+  25aabd7ca044a06d 117,126,134
+model/log_format_test.go
+  25aabd7ca044a06d 245-324
+model/log_other.go
+  25aabd7ca044a06d 17,233,235,245-247,249-250,252-259,274-275
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.20",
+  "base_commit_sha": "56cc95d4b06401903e9f6d3b86f1f52657e49544",
+  "prompts": {
+    "25aabd7ca044a06d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "81660552-de5d-4437-a92b-d8f0d42046d8",
+        "model": "glm_for_coding"
+      },
+      "human_author": "TsinHzl <tsinhzl@icloud.com>",
+      "messages": [],
+      "total_additions": 103,
+      "total_deletions": 14,
+      "accepted_lines": 101,
+      "overriden_lines": 0
+    }
+  }
+}
