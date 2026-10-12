@@ -1,0 +1,25 @@
+common/ip_location.go
+  25aabd7ca044a06d 13-17,57-59,67,76-77,80
+common/ip_location_test.go
+  25aabd7ca044a06d 1-106
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.20",
+  "base_commit_sha": "c135ddcf4c78e063829901ee8f68634060a7586d",
+  "prompts": {
+    "25aabd7ca044a06d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "81660552-de5d-4437-a92b-d8f0d42046d8",
+        "model": "glm_for_coding"
+      },
+      "human_author": "TsinHzl <tsinhzl@icloud.com>",
+      "messages": [],
+      "total_additions": 126,
+      "total_deletions": 12,
+      "accepted_lines": 118,
+      "overriden_lines": 0
+    }
+  }
+}
