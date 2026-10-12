@@ -14,6 +14,7 @@ const (
 	logOtherRootInfoKey     = "root_info"
 	logOtherAuditInfoKey    = "audit_info"
 	logOtherContentPartsKey = "content_parts"
+	logOtherIPLocationKey   = "ip_location"
 )
 
 // legacySensitiveLogOtherKeys are historical top-level fields that must never
@@ -229,9 +230,9 @@ func normalizeLegacyRejectReason(values map[string]json.RawMessage) bool {
 // formatLogOtherJSON applies the role projection while keeping untouched JSON
 // values as RawMessage. This preserves integers larger than JavaScript's safe
 // range instead of round-tripping them through float64.
-func formatLogOtherJSON(value string, visibility logOtherVisibility) string {
+func formatLogOtherJSON(value string, ip string, visibility logOtherVisibility) string {
 	if value == "" {
-		return ""
+		value = "{}"
 	}
 
 	var values map[string]json.RawMessage
@@ -241,8 +242,21 @@ func formatLogOtherJSON(value string, visibility logOtherVisibility) string {
 		}
 		return "{}"
 	}
+	if values == nil {
+		values = make(map[string]json.RawMessage)
+	}
 
+	// 归属地可由 IP 推导且对所有角色可见。历史日志写入时没有落库，故在此补算，
+	// 让新旧日志展示一致；已经写入的值保持不覆盖，但空值需重新补算。
 	changed := false
+	if existing, exists := values[logOtherIPLocationKey]; !exists || string(existing) == `""` {
+		if location := common.GetIPLocation(ip); location != "" {
+			if encoded, err := common.Marshal(location); err == nil {
+				values[logOtherIPLocationKey] = encoded
+				changed = true
+			}
+		}
+	}
 	if visibility == logOtherVisibilityUser {
 		for _, key := range []string{logOtherAdminInfoKey, logOtherRootInfoKey, logOtherAuditInfoKey} {
 			if _, exists := values[key]; exists {
@@ -257,7 +271,8 @@ func formatLogOtherJSON(value string, visibility logOtherVisibility) string {
 			}
 		}
 	} else {
-		changed = normalizeLegacyRejectReason(values)
+		// 不可覆盖 changed：补算 ip_location 时它可能已为 true
+		changed = normalizeLegacyRejectReason(values) || changed
 		if visibility == logOtherVisibilityAdmin {
 			if _, exists := values[logOtherRootInfoKey]; exists {
 				delete(values, logOtherRootInfoKey)

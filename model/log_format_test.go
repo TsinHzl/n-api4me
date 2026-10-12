@@ -242,3 +242,83 @@ func TestLogFormattingPreservesLargeIntegerLexemes(t *testing.T) {
 		assert.Equal(t, unprivileged, adminLogs[0].Other)
 	})
 }
+
+// TestLogIPLocationResolvedOnRead 验证归属地在读取时补算：历史日志写入时未落库
+// ip_location，也必须在有 IP 时展示出来。
+func TestLogIPLocationResolvedOnRead(t *testing.T) {
+	const publicIP = "114.247.88.29"
+
+	t.Run("legacy log without ip_location gets one", func(t *testing.T) {
+		logs := []*Log{{Other: `{"model_price":0.004}`, Ip: publicIP}}
+
+		formatUserLogs(logs, 0)
+
+		parsed, err := common.StrToMap(logs[0].Other)
+		require.NoError(t, err)
+		assert.Equal(t, "中国·北京市", parsed["ip_location"])
+		assert.Contains(t, parsed, "model_price", "existing fields must be preserved")
+	})
+
+	t.Run("empty other still gets a location", func(t *testing.T) {
+		logs := []*Log{{Other: "", Ip: publicIP}}
+
+		formatUserLogs(logs, 0)
+
+		parsed, err := common.StrToMap(logs[0].Other)
+		require.NoError(t, err)
+		assert.Equal(t, "中国·北京市", parsed["ip_location"])
+	})
+
+	t.Run("recorded location is not overwritten", func(t *testing.T) {
+		logs := []*Log{{Other: `{"ip_location":"中国·上海市"}`, Ip: publicIP}}
+
+		FormatRootLogs(logs)
+
+		parsed, err := common.StrToMap(logs[0].Other)
+		require.NoError(t, err)
+		assert.Equal(t, "中国·上海市", parsed["ip_location"])
+	})
+
+	t.Run("admin view resolves location for legacy log", func(t *testing.T) {
+		// 覆盖 else 分支：normalizeLegacyRejectReason 的返回值不得覆盖补算结果
+		logs := []*Log{{Other: `{"model_price":0.004,"reject_reason":"legacy"}`, Ip: publicIP}}
+
+		FormatAdminLogs(logs)
+
+		parsed, err := common.StrToMap(logs[0].Other)
+		require.NoError(t, err)
+		assert.Equal(t, "中国·北京市", parsed["ip_location"])
+	})
+
+	t.Run("root view resolves location for legacy log", func(t *testing.T) {
+		logs := []*Log{{Other: `{"model_price":0.004}`, Ip: publicIP}}
+
+		FormatRootLogs(logs)
+
+		parsed, err := common.StrToMap(logs[0].Other)
+		require.NoError(t, err)
+		assert.Equal(t, "中国·北京市", parsed["ip_location"])
+	})
+
+	t.Run("empty recorded value is refilled", func(t *testing.T) {
+		logs := []*Log{{Other: `{"ip_location":""}`, Ip: publicIP}}
+
+		formatUserLogs(logs, 0)
+
+		parsed, err := common.StrToMap(logs[0].Other)
+		require.NoError(t, err)
+		assert.Equal(t, "中国·北京市", parsed["ip_location"])
+	})
+
+	t.Run("non public or missing ip adds nothing", func(t *testing.T) {
+		for _, ip := range []string{"", "10.0.0.1", "127.0.0.1", "not-an-ip"} {
+			logs := []*Log{{Other: `{"model_price":0.004}`, Ip: ip}}
+
+			FormatAdminLogs(logs)
+
+			parsed, err := common.StrToMap(logs[0].Other)
+			require.NoError(t, err)
+			assert.NotContains(t, parsed, "ip_location", "ip %q", ip)
+		}
+	})
+}

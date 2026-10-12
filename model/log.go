@@ -114,7 +114,7 @@ func assignDisplayLogIds(logs []*Log, startIdx int) {
 func formatUserLogs(logs []*Log, startIdx int) {
 	for i := range logs {
 		logs[i].ChannelName = ""
-		logs[i].Other = formatLogOtherJSON(logs[i].Other, logOtherVisibilityUser)
+		logs[i].Other = formatLogOtherJSON(logs[i].Other, logs[i].Ip, logOtherVisibilityUser)
 	}
 	assignDisplayLogIds(logs, startIdx)
 }
@@ -123,7 +123,7 @@ func formatUserLogs(logs []*Log, startIdx int) {
 // admin_info. Root callers must not pass their results through this formatter.
 func FormatAdminLogs(logs []*Log) {
 	for i := range logs {
-		logs[i].Other = formatLogOtherJSON(logs[i].Other, logOtherVisibilityAdmin)
+		logs[i].Other = formatLogOtherJSON(logs[i].Other, logs[i].Ip, logOtherVisibilityAdmin)
 	}
 }
 
@@ -131,7 +131,7 @@ func FormatAdminLogs(logs []*Log) {
 // without removing root-only diagnostics.
 func FormatRootLogs(logs []*Log) {
 	for i := range logs {
-		logs[i].Other = formatLogOtherJSON(logs[i].Other, logOtherVisibilityRoot)
+		logs[i].Other = formatLogOtherJSON(logs[i].Other, logs[i].Ip, logOtherVisibilityRoot)
 	}
 }
 
@@ -282,9 +282,6 @@ func RecordErrorLog(c *gin.Context, userId int, channelId int, modelName string,
 	requestId := c.GetString(common.RequestIdKey)
 	upstreamRequestId := c.GetString(common.UpstreamRequestIdKey)
 	ip := c.ClientIP()
-	if location := common.GetIPLocation(ip); location != "" {
-		other.SetPublic("ip_location", location)
-	}
 	otherStr := other.JSONString()
 	log := &Log{
 		UserId:            userId,
@@ -339,9 +336,6 @@ func RecordConsumeLog(c *gin.Context, userId int, params RecordConsumeLogParams)
 	createdAt := common.GetTimestamp()
 	other := params.Other
 	ip := c.ClientIP()
-	if location := common.GetIPLocation(ip); location != "" {
-		other.SetPublic("ip_location", location)
-	}
 	content := other.setContent(params.Content)
 	otherStr := other.JSONString()
 	log := &Log{
