@@ -1,0 +1,29 @@
+web/src/features/usage-logs/components/columns/common-logs-columns.tsx
+  25aabd7ca044a06d 842-843,846-857
+common/ip_location.go
+  25aabd7ca044a06d 1-80
+model/log.go
+  25aabd7ca044a06d 284-287,305,341-344,363
+web/src/features/usage-logs/types.ts
+  25aabd7ca044a06d 118-119
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.20",
+  "base_commit_sha": "c4c5c7ac9bc6d9f2f6be8cb87281c62ee1c198f2",
+  "prompts": {
+    "25aabd7ca044a06d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "81660552-de5d-4437-a92b-d8f0d42046d8",
+        "model": "glm_for_coding"
+      },
+      "human_author": "TsinHzl <tsinhzl@icloud.com>",
+      "messages": [],
+      "total_additions": 194,
+      "total_deletions": 14,
+      "accepted_lines": 183,
+      "overriden_lines": 0
+    }
+  }
+}
