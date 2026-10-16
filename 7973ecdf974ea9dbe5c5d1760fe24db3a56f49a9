@@ -1,0 +1,42 @@
+web/src/features/usage-logs/components/async-combobox.tsx
+  25aabd7ca044a06d 39-41,50-52,72,74-77,103-107,111-114,117,135-147
+web/src/features/usage-logs/components/common-logs-filter-bar.tsx
+  25aabd7ca044a06d 168-172,176-177,180-197,227-237,242-247,580-583
+web/src/features/security/__tests__/page.test.tsx
+  25aabd7ca044a06d 159
+web/src/features/usage-logs/components/__tests__/async-combobox.test.tsx
+  25aabd7ca044a06d 19,103-110,113-115
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.20",
+  "base_commit_sha": "7973ecdf974ea9dbe5c5d1760fe24db3a56f49a9",
+  "prompts": {
+    "25aabd7ca044a06d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "81660552-de5d-4437-a92b-d8f0d42046d8",
+        "model": "glm_for_coding"
+      },
+      "human_author": "TsinHzl <tsinhzl@icloud.com>",
+      "messages": [],
+      "total_additions": 117,
+      "total_deletions": 60,
+      "accepted_lines": 98,
+      "overriden_lines": 0
+    },
+    "f2fd04362b157c6b": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "42c486bc-4715-484b-89d4-bf90c51adf91",
+        "model": "glm_for_coding"
+      },
+      "human_author": "TsinHzl <tsinhzl@icloud.com>",
+      "messages": [],
+      "total_additions": 369,
+      "total_deletions": 100,
+      "accepted_lines": 269,
+      "overriden_lines": 0
+    }
+  }
+}
