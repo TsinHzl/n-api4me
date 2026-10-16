@@ -43,6 +43,7 @@ import { ROLE } from '@/lib/roles'
 import { STATUS_QUERY_KEY } from '@/lib/status-query'
 import { useAuthStore } from '@/stores/auth-store'
 
+import { SYSTEM_RELEASE_REPO } from '../releases'
 import { useSystemUpdatePreferencesStore, useSystemUpdateStore } from '../store'
 import { SystemUpdateAction } from '../system-update-action'
 import { SYSTEM_UPDATE_INTERVAL, useSystemUpdate } from '../use-system-update'
@@ -137,7 +138,7 @@ describe('administrator update entry', () => {
       expect(fetchMock).toHaveBeenCalledTimes(1)
       const [url, options] = fetchMock.mock.calls[0]
       expect(String(url)).toBe(
-        'https://api.github.com/repos/QuantumNous/new-api/releases?per_page=100'
+        `https://api.github.com/repos/${SYSTEM_RELEASE_REPO}/releases?per_page=100`
       )
       expect(options?.credentials).toBe('omit')
       expect(options?.headers).toEqual({
@@ -190,7 +191,7 @@ describe('administrator update entry', () => {
       within(dialog).getByRole('link', { name: 'Go to GitHub' })
     ).toHaveAttribute(
       'href',
-      'https://github.com/QuantumNous/new-api/releases/tag/v1.0.0-rc.36'
+      `https://github.com/${SYSTEM_RELEASE_REPO}/releases/tag/v1.0.0-rc.36`
     )
     await user.keyboard('{Escape}')
     await waitFor(() =>

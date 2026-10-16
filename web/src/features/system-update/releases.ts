@@ -110,6 +110,8 @@ export function selectLatestRelease(payload: unknown): SystemRelease | null {
   return latest
 }
 
+export const SYSTEM_RELEASE_REPO = 'TsinHzl/n-api4me'
+
 export function getSystemReleaseUrl(release: SystemRelease): string {
-  return `https://github.com/QuantumNous/new-api/releases/tag/${encodeURIComponent(release.tag_name)}`
+  return `https://github.com/${SYSTEM_RELEASE_REPO}/releases/tag/${encodeURIComponent(release.tag_name)}`
 }
