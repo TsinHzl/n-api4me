@@ -1,0 +1,29 @@
+.github/workflows/docker-build.yml
+  25aabd7ca044a06d 147-174
+web/src/features/system-update/__tests__/update-checking.test.tsx
+  25aabd7ca044a06d 46,141,194
+web/src/features/system-update/api.ts
+  25aabd7ca044a06d 19,45
+web/src/features/system-update/releases.ts
+  25aabd7ca044a06d 113-114,116
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.20",
+  "base_commit_sha": "1e1becc3a493b5024c799218720dcb68156e4eb3",
+  "prompts": {
+    "25aabd7ca044a06d": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "81660552-de5d-4437-a92b-d8f0d42046d8",
+        "model": "glm_for_coding"
+      },
+      "human_author": "TsinHzl <tsinhzl@icloud.com>",
+      "messages": [],
+      "total_additions": 49,
+      "total_deletions": 18,
+      "accepted_lines": 43,
+      "overriden_lines": 0
+    }
+  }
+}
