@@ -36,6 +36,9 @@ export interface AsyncComboboxOption {
   description?: string
 }
 
+/** 输入防抖间隔（毫秒），避免击键逐字触发服务端搜索。 */
+const SEARCH_DEBOUNCE_MS = 300
+
 interface AsyncComboboxProps {
   options: readonly AsyncComboboxOption[]
   value: string
@@ -44,6 +47,9 @@ interface AsyncComboboxProps {
   placeholder?: string
   emptyText?: string
   loading?: boolean
+  /** 加载失败提示文案；提供时在空列表状态下展示并允许点击重试。 */
+  errorText?: string
+  onErrorRetry?: () => void
   disabled?: boolean
   className?: string
   popupClassName?: string
@@ -63,7 +69,12 @@ export function AsyncCombobox(props: AsyncComboboxProps) {
   const { t } = useTranslation()
   const [open, setOpen] = React.useState(false)
   const [search, setSearch] = React.useState('')
+  const searchTimer = React.useRef<ReturnType<typeof setTimeout>>(undefined)
   const anchor = useComboboxAnchor()
+  React.useEffect(
+    () => () => clearTimeout(searchTimer.current),
+    []
+  )
   // A value restored from the URL may no longer be in the option list; keeping
   // a synthetic entry lets the input show it and keeps the clear button usable.
   const selected = React.useMemo(() => {
@@ -89,13 +100,21 @@ export function AsyncCombobox(props: AsyncComboboxProps) {
       onInputValueChange={(nextValue, details) => {
         if (details.reason !== 'input-change') return
         setSearch(nextValue)
-        props.onSearch?.(nextValue)
+        clearTimeout(searchTimer.current)
+        searchTimer.current = setTimeout(
+          () => props.onSearch?.(nextValue),
+          SEARCH_DEBOUNCE_MS
+        )
       }}
       onOpenChange={(nextOpen, details) => {
         setOpen(nextOpen)
-        if (details.reason !== 'input-change') setSearch('')
+        if (details.reason !== 'input-change') {
+          clearTimeout(searchTimer.current)
+          setSearch('')
+        }
       }}
       onValueChange={(option) => {
+        clearTimeout(searchTimer.current)
         props.onValueChange(option ? option.value : '')
       }}
     >
@@ -113,9 +132,19 @@ export function AsyncCombobox(props: AsyncComboboxProps) {
       </div>
       <ComboboxContent anchor={anchor} className={props.popupClassName}>
         <ComboboxEmpty>
-          {props.loading
-            ? t('Loading...')
-            : (props.emptyText ?? t('No results found'))}
+          {props.loading ? (
+            t('Loading...')
+          ) : props.errorText ? (
+            <button
+              type='button'
+              className='w-full cursor-pointer'
+              onClick={props.onErrorRetry}
+            >
+              {props.errorText}
+            </button>
+          ) : (
+            (props.emptyText ?? t('No results found'))
+          )}
         </ComboboxEmpty>
         <ComboboxList>
           {(option: AsyncComboboxOption) => (

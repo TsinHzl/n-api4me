@@ -2557,6 +2557,7 @@
     "Failed to load API keys": "加载 API 密钥失败",
     "Failed to load artifacts": "制品加载失败",
     "Failed to load audit records": "加载审计记录失败",
+    "Failed to load data. Click to retry.": "数据加载失败，点击重试。",
     "Failed to load billing history": "加载计费历史失败",
     "Failed to load channel": "渠道加载失败",
     "Failed to load enabled models": "获取启用模型失败",

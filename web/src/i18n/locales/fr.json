@@ -2557,6 +2557,7 @@
     "Failed to load API keys": "Échec du chargement des Clés API",
     "Failed to load artifacts": "Échec du chargement des artefacts",
     "Failed to load audit records": "Échec du chargement des audits",
+    "Failed to load data. Click to retry.": "Échec du chargement des données. Cliquez pour réessayer.",
     "Failed to load billing history": "Échec du chargement de l'historique de facturation",
     "Failed to load channel": "Échec du chargement du canal",
     "Failed to load enabled models": "Échec du chargement des modèles activés",

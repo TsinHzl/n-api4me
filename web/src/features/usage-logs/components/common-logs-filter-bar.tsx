@@ -165,15 +165,36 @@ export function CommonLogsFilterBar<TData>(
       return Array.isArray(response.data) ? response.data : []
     },
   })
-  const { data: channelList } = useQuery({
+  const {
+    data: channelList,
+    isError: channelListError,
+    refetch: refetchChannels,
+  } = useQuery({
     queryKey: ['usage-logs-filter-channels'],
     enabled: isAdmin,
     queryFn: async () => {
-      const response = requireServerSuccess(
+      // page_size 触顶时分页拉全，避免静默拿到不完整列表。
+      const firstPage = requireServerSuccess(
         await searchChannels({ p: 1, page_size: CHANNEL_LIST_PAGE_SIZE })
       )
-      const items = response.data?.items
-      return Array.isArray(items) ? items : []
+      const firstItems = Array.isArray(firstPage.data?.items)
+        ? firstPage.data.items
+        : []
+      if (firstItems.length < CHANNEL_LIST_PAGE_SIZE) return firstItems
+      const allItems = [...firstItems]
+      // 兜底上限：防止服务端忽略分页参数时陷入无限拉取。
+      const maxPage = 50
+      for (let page = 2; page <= maxPage; page++) {
+        const response = requireServerSuccess(
+          await searchChannels({ p: page, page_size: CHANNEL_LIST_PAGE_SIZE })
+        )
+        const items = Array.isArray(response.data?.items)
+          ? response.data.items
+          : []
+        allItems.push(...items)
+        if (items.length < CHANNEL_LIST_PAGE_SIZE) return allItems
+      }
+      return allItems
     },
   })
   const [usernameKeyword, setUsernameKeyword] = useState('')
@@ -203,19 +224,27 @@ export function CommonLogsFilterBar<TData>(
   )
   const channelOptions = useMemo(
     () =>
-      (channelList ?? []).map((channel) => ({
-        value: String(channel.id),
-        // 接口只做类型断言不做运行时校验，name 缺失时只显示 #ID。
-        label: `#${channel.id} ${channel.name ?? ''}`.trim(),
-      })),
+      (channelList ?? []).flatMap((channel) =>
+        channel.id == null
+          ? []
+          : [
+              {
+                value: String(channel.id),
+                // 接口只做类型断言不做运行时校验，name 缺失时只显示 #ID。
+                label: `#${channel.id} ${channel.name ?? ''}`.trim(),
+              },
+            ]
+      ),
     [channelList]
   )
   const usernameOptions = useMemo(
     () =>
-      (userList ?? []).map((user) => ({
-        value: user.username,
-        label: user.username,
-      })),
+      (userList ?? [])
+        .filter((user) => Boolean(user.username))
+        .map((user) => ({
+          value: user.username,
+          label: user.username,
+        })),
     [userList]
   )
 
@@ -548,6 +577,10 @@ export function CommonLogsFilterBar<TData>(
             ariaLabel={t('Channel ID')}
             placeholder={t('Channel ID')}
             emptyText={t('No channel found.')}
+            errorText={
+              channelListError ? t('Failed to load data. Click to retry.') : undefined
+            }
+            onErrorRetry={() => refetchChannels()}
             className={cn('h-8 min-w-0 text-sm leading-5', sensitiveInputClass)}
             popupClassName={sensitiveInputClass}
             onKeyDown={handleKeyDown}

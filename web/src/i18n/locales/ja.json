@@ -2557,6 +2557,7 @@
     "Failed to load API keys": "APIキーの読み込みに失敗しました",
     "Failed to load artifacts": "成果物の読み込みに失敗しました",
     "Failed to load audit records": "監査記録の読み込みに失敗しました",
+    "Failed to load data. Click to retry.": "データの読み込みに失敗しました。クリックして再試行してください。",
     "Failed to load billing history": "請求履歴の読み込みに失敗しました",
     "Failed to load channel": "チャネルの読み込みに失敗しました",
     "Failed to load enabled models": "有効なモデルの取得に失敗しました",

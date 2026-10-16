@@ -2557,6 +2557,7 @@
     "Failed to load API keys": "Không thể tải khóa API",
     "Failed to load artifacts": "Không thể tải sản phẩm",
     "Failed to load audit records": "Không thể tải bản ghi kiểm toán",
+    "Failed to load data. Click to retry.": "Không thể tải dữ liệu. Nhấp để thử lại.",
     "Failed to load billing history": "Không thể tải lịch sử thanh toán",
     "Failed to load channel": "Không thể tải kênh",
     "Failed to load enabled models": "Không thể tải các mô hình đã bật",

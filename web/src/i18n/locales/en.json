@@ -2557,6 +2557,7 @@
     "Failed to load API keys": "Failed to load API keys",
     "Failed to load artifacts": "Failed to load artifacts",
     "Failed to load audit records": "Failed to load audit records",
+    "Failed to load data. Click to retry.": "Failed to load data. Click to retry.",
     "Failed to load billing history": "Failed to load billing history",
     "Failed to load channel": "Failed to load channel",
     "Failed to load enabled models": "Failed to load enabled models",

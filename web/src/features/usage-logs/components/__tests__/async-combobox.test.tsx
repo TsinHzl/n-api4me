@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, expect, it, vi } from 'vitest'
 
@@ -100,7 +100,19 @@ it('forwards typed input to onSearch without filtering locally', async () => {
   const input = screen.getByRole('combobox', { name: 'Model Name' })
   await userEvent.click(input)
   await userEvent.type(input, 'son')
-  expect(onSearch).toHaveBeenCalledWith('son')
+  // 输入防抖：停顿后仅发出最后一次关键词。
+  await waitFor(() => expect(onSearch).toHaveBeenCalledWith('son'))
+  expect(onSearch).toHaveBeenCalledTimes(1)
+})
+
+it('shows the error message with retry when data loading fails', async () => {
+  const onErrorRetry = vi.fn()
+  renderCombobox({ options: [], errorText: 'Failed to load', onErrorRetry })
+  const input = screen.getByRole('combobox', { name: 'Model Name' })
+  await userEvent.click(input)
+  const retry = await screen.findByRole('button', { name: 'Failed to load' })
+  await userEvent.click(retry)
+  expect(onErrorRetry).toHaveBeenCalledTimes(1)
 })
 
 it('filters typed input locally when no onSearch is provided', async () => {
